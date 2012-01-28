@@ -12,8 +12,8 @@ package example
 
 object Model extends Keyspace("sandra_example") {
   object Users extends StandardFamily[Int, String]("users") {
-    val name = Column[String]("name")
-    val email = Column[String]("email")
+    val name = StringColumn("name")
+    val email = StringColumn("email")
   }
 }
 

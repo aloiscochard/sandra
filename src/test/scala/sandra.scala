@@ -18,8 +18,16 @@ class IntegrationTest extends Specification {
 
     object Model extends Keyspace("sandra_test") {
       object Family extends StandardFamily[Int, String]("family") {
-        val column1 = Column[String]("column1")
-        val column2 = Column[String]("column2")
+        val column1 = StringColumn("column1")
+        val column2 = StringColumn("column2")
+
+        val columnB = BooleanColumn("columnB")
+        val columnD = DateColumn("columnD")
+        val columnI = IntColumn("columnI")
+        val columnL = LongColumn("columnL")
+        val columnS = StringColumn("columnS")
+        val columnT = TimeUUIDColumn("columnT")
+        val columnU = UUIDColumn("columnU")
       }
     }
 
@@ -46,6 +54,46 @@ class IntegrationTest extends Specification {
       Family.get(1)(Family.column1(_)) must beNone
       true must beEqualTo(true)
     }
+
+    /*
+    "support cassandra data type" in {
+      val b = true
+      val d = new java.util.Date
+      val i: Int = 1
+      val l: Long = 1
+      val s = "hello, world"
+      val t = new com.eaio.uuid.UUID
+      val u = java.util.UUID.randomUUID
+
+      Family.update(1)(
+        Family.columnB(b) ::
+        Family.columnD(d) ::
+        Family.columnI(i) ::
+        Family.columnL(l) ::
+        Family.columnS(s) ::
+        Family.columnT(t) ::
+        Family.columnU(u) ::
+        Nil)
+
+      Family.get(1) { x => (
+        Family.columnB(x).get,
+        Family.columnD(x).get,
+        Family.columnI(x).get,
+        Family.columnL(x).get,
+        Family.columnS(x).get,
+        Family.columnT(x).get,
+        Family.columnU(x).get
+      ) } must beEqualTo(Some((
+        b,
+        d,
+        i,
+        l,
+        s,
+        t,
+        u
+      )))
+    }
+    */
   }
 }
 

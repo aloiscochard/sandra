@@ -7,20 +7,60 @@
 //  http://aloiscochard.github.com/sandra        
 //                                              
 
+import java.util.Date;
+import java.util.UUID;
+import com.eaio.uuid.{UUID => TimeUUID};
+
 package object sandra {
   type CassandraConfigurator = me.prettyprint.cassandra.service.CassandraHostConfigurator
   type HResult[T] = me.prettyprint.cassandra.service.template.ColumnFamilyResult[_, T]
 
-  implicit object StringSerializer extends Serializer[String] {
-    override type C = java.lang.String
-    override def apply(x: String): java.lang.String = x
-    override def cassandra = me.prettyprint.cassandra.serializers.StringSerializer.get
+  implicit object ArrayByteSerializer extends Serializer[Array[Byte]] {
+    override type C = Array[Byte]
+    override def apply(x: Array[Byte]): Array[Byte] = x
+    override def cassandra = me.prettyprint.cassandra.serializers.BytesArraySerializer.get
+  }
+
+  implicit object BooleanSerializer extends Serializer[Boolean] {
+    override type C = java.lang.Boolean
+    override def apply(x: Boolean): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.BooleanSerializer.get
+  }
+
+  implicit object DateSerializer extends Serializer[Date] {
+    override type C = Date
+    override def apply(x: Date): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.DateSerializer.get
   }
 
   implicit object IntSerializer extends Serializer[Int] {
     override type C = java.lang.Integer
-    override def apply(x: Int): java.lang.Integer = x
+    override def apply(x: Int): C = x
     override def cassandra = me.prettyprint.cassandra.serializers.IntegerSerializer.get
+  }
+
+  implicit object LongSerializer extends Serializer[Long] {
+    override type C = java.lang.Long
+    override def apply(x: Long): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.LongSerializer.get
+  }
+
+  implicit object StringSerializer extends Serializer[String] {
+    override type C = java.lang.String
+    override def apply(x: String): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.StringSerializer.get
+  }
+
+  implicit object TimeUUIDSerializer extends Serializer[TimeUUID] {
+    override type C = TimeUUID
+    override def apply(x: TimeUUID): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.TimeUUIDSerializer.get
+  }
+
+  implicit object UUIDSerializer extends Serializer[UUID] {
+    override type C = UUID
+    override def apply(x: UUID): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.UUIDSerializer.get
   }
 
   implicit def family2ddl[T <: Family](family: T)(implicit cluster: Cluster) =
@@ -43,10 +83,6 @@ package sandra {
 
     type CK = Serializer[K]#C
     type CN = Serializer[N]#C
-
-    object Column {
-      def apply[T <: String](name: String)(implicit family: Family) = StringColumn(name)
-    }
 
     def familyName: String
     def keyspace: Keyspace
@@ -72,14 +108,64 @@ package sandra {
     def serializer: Serializer[T]
   }
 
-  case class StringColumn[N](name: N) extends Column[String, N] {
+  case class ArrayByteColumn[N](name: N)
+      (implicit override val serializer: Serializer[Array[Byte]])
+      extends Column[Array[Byte], N] {
+    override def apply(result: HResult[N]) = Option(result.getByteArray(name))
+    override def apply(value: Array[Byte]) = new ColumnValue[Array[Byte], N](this, value)
+  }
+
+  case class BooleanColumn[N](name: N)
+      (implicit override val serializer: Serializer[Boolean])
+      extends Column[Boolean, N] {
+    override def apply(result: HResult[N]) = Option(result.getBoolean(name))
+    override def apply(value: Boolean) = new ColumnValue[Boolean, N](this, value)
+  }
+
+  case class DateColumn[N](name: N)
+      (implicit override val serializer: Serializer[Date])
+      extends Column[Date, N] {
+    override def apply(result: HResult[N]) = Option(result.getDate(name))
+    override def apply(value: Date) = new ColumnValue[Date, N](this, value)
+  }
+
+  case class IntColumn[N](name: N)
+      (implicit override val serializer: Serializer[Int])
+      extends Column[Int, N] {
+    override def apply(result: HResult[N]) = Option(result.getInteger(name))
+    override def apply(value: Int) = new ColumnValue[Int, N](this, value)
+  }
+
+  case class LongColumn[N](name: N)
+      (implicit override val serializer: Serializer[Long])
+      extends Column[Long, N] {
+    override def apply(result: HResult[N]) = Option(result.getLong(name))
+    override def apply(value: Long) = new ColumnValue[Long, N](this, value)
+  }
+
+  case class StringColumn[N](name: N)
+      (implicit override val serializer: Serializer[String])
+      extends Column[String, N] {
     override def apply(result: HResult[N]) = Option(result.getString(name))
     override def apply(value: String) = new ColumnValue[String, N](this, value)
-    override val serializer = StringSerializer
+  }
+
+  case class TimeUUIDColumn[N](name: N)
+      (implicit override val serializer: Serializer[TimeUUID])
+      extends Column[TimeUUID, N] {
+    override def apply(result: HResult[N]) = Option(new TimeUUID(result.getUUID(name).toString))
+    override def apply(value: TimeUUID) = new ColumnValue[TimeUUID, N](this, value)
+  }
+
+  case class UUIDColumn[N](name: N)
+      (implicit override val serializer: Serializer[UUID])
+      extends Column[UUID, N] {
+    override def apply(result: HResult[N]) = Option(result.getUUID(name))
+    override def apply(value: UUID) = new ColumnValue[UUID, N](this, value)
   }
 
   final class ColumnValue[T, N](val column: Column[T, N], value: T) {
-    def apply() = value
+    def apply(): T = value
   }
   
   trait Serializer[T] {
