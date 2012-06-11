@@ -52,7 +52,14 @@ class IntegrationTest extends Specification {
 
       Family.delete(1) must beEqualTo(true)
       Family.get(1)(Family.column1(_)) must beNone
-      true must beEqualTo(true)
+    }
+
+    "store and getAll" in {
+      Family.columnUpdate(1)(Family.column1(value1 + value2))
+      Family.columnUpdate(2)(Family.column1(value1 + value2))
+      Family.getAll(10, false, None) must beEqualTo(1 :: 2 :: Nil)
+      // DON'T WORK
+      //Family.getAll(10, true, None) must beEqualTo(2 :: 1 :: Nil) // Need ordered partitioner to work
     }
 
     /*
@@ -93,7 +100,7 @@ class IntegrationTest extends Specification {
         u
       )))
     }
-    */
+  */
   }
 }
 

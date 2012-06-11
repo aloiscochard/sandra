@@ -53,7 +53,33 @@ final class StandardFamilyTemplate[T <: Family, K, N]
     else None
   }
 
-  def update(key: family.type#K)(values: => Seq[ColumnValue[_, family.type#N]]): this.type = {
+  def getAll(size: Int, reversed: Boolean, from: Option[family.type#K]): List[family.type#K] = {
+    val query = HFactory.createRangeSlicesQuery(
+      hkeyspace, 
+      family.k.cassandra.asInstanceOf[me.prettyprint.hector.api.Serializer[family.type#K]],
+      family.n.cassandra.asInstanceOf[me.prettyprint.hector.api.Serializer[family.type#N]],
+      family.k.cassandra.asInstanceOf[me.prettyprint.hector.api.Serializer[family.type#K]])
+            .setColumnFamily(family.familyName)
+            .setRange(null.asInstanceOf[family.type#N], null.asInstanceOf[family.type#N], reversed, from.map(_ => size +1).getOrElse(size))
+            //.setRowCount(row_count);
+
+    from.foreach(query.setKeys(_, null.asInstanceOf[family.type#K]))
+
+    var keys = List[family.type#K]()
+    val i = query.execute().get().iterator()
+    while(i.hasNext()) {
+      val row = i.next()
+      val key = row.getKey()
+
+      if(from.map(key != _).getOrElse(true)) keys ::= key.asInstanceOf[family.type#K]
+    }
+
+    keys.reverse
+  }
+
+  // TODO [aloiscochard] Replace with shapeless
+  //def update(key: family.type#K)(values: => Seq[ColumnValue[_, family.type#N]]): this.type = {
+  def update(key: family.type#K)(values: => Seq[ColumnValue[_, _]]): this.type = {
     val updater = htemplate.createUpdater(family.k(key))
     values.foreach { value =>
       updater.setValue(value.column.name, value(), value.column.serializer.cassandra
