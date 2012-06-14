@@ -7,6 +7,8 @@
 //  http://aloiscochard.github.com/sandra        
 //                                              
 
+import scala.util.control.Exception._
+
 import java.util.Date;
 import java.util.UUID;
 import com.eaio.uuid.{UUID => TimeUUID};
@@ -102,66 +104,70 @@ package sandra {
 
   sealed trait Column[T, N] {
     type Name = N
+
+    final def apply(result: HResult[N]): Option[T] =
+      catching(classOf[NullPointerException]).opt(read(result)).getOrElse(None)
+
     def name: N
-    def apply(result: HResult[N]): Option[T]
     def apply(value: T): ColumnValue[T, N]
     def serializer: Serializer[T]
+    def read(result: HResult[N]): Option[T]
   }
 
   case class ArrayByteColumn[N](name: N)
       (implicit override val serializer: Serializer[Array[Byte]])
       extends Column[Array[Byte], N] {
-    override def apply(result: HResult[N]) = Option(result.getByteArray(name))
     override def apply(value: Array[Byte]) = new ColumnValue[Array[Byte], N](this, value)
+    override def read(result: HResult[N]) = Option(result.getByteArray(name))
   }
 
   case class BooleanColumn[N](name: N)
       (implicit override val serializer: Serializer[Boolean])
       extends Column[Boolean, N] {
-    override def apply(result: HResult[N]) = Option(result.getBoolean(name))
     override def apply(value: Boolean) = new ColumnValue[Boolean, N](this, value)
+    override def read(result: HResult[N]) = Option(result.getBoolean(name))
   }
 
   case class DateColumn[N](name: N)
       (implicit override val serializer: Serializer[Date])
       extends Column[Date, N] {
-    override def apply(result: HResult[N]) = Option(result.getDate(name))
     override def apply(value: Date) = new ColumnValue[Date, N](this, value)
+    override def read(result: HResult[N]) = Option(result.getDate(name))
   }
 
   case class IntColumn[N](name: N)
       (implicit override val serializer: Serializer[Int])
       extends Column[Int, N] {
-    override def apply(result: HResult[N]) = Option(result.getInteger(name))
     override def apply(value: Int) = new ColumnValue[Int, N](this, value)
+    override def read(result: HResult[N]) = Option(result.getInteger(name))
   }
 
   case class LongColumn[N](name: N)
       (implicit override val serializer: Serializer[Long])
       extends Column[Long, N] {
-    override def apply(result: HResult[N]) = Option(result.getLong(name))
     override def apply(value: Long) = new ColumnValue[Long, N](this, value)
+    override def read(result: HResult[N]) = Option(result.getLong(name))
   }
 
   case class StringColumn[N](name: N)
       (implicit override val serializer: Serializer[String])
       extends Column[String, N] {
-    override def apply(result: HResult[N]) = Option(result.getString(name))
     override def apply(value: String) = new ColumnValue[String, N](this, value)
+    override def read(result: HResult[N]) = Option(result.getString(name))
   }
 
   case class TimeUUIDColumn[N](name: N)
       (implicit override val serializer: Serializer[TimeUUID])
       extends Column[TimeUUID, N] {
-    override def apply(result: HResult[N]) = Option(new TimeUUID(result.getUUID(name).toString))
     override def apply(value: TimeUUID) = new ColumnValue[TimeUUID, N](this, value)
+    override def read(result: HResult[N]) = Option(new TimeUUID(result.getUUID(name).toString))
   }
 
   case class UUIDColumn[N](name: N)
       (implicit override val serializer: Serializer[UUID])
       extends Column[UUID, N] {
-    override def apply(result: HResult[N]) = Option(result.getUUID(name))
     override def apply(value: UUID) = new ColumnValue[UUID, N](this, value)
+    override def read(result: HResult[N]) = Option(result.getUUID(name))
   }
 
   final class ColumnValue[T, N](val column: Column[T, N], value: T) {

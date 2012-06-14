@@ -54,10 +54,13 @@ class IntegrationTest extends Specification {
       Family.get(1)(Family.column1(_)) must beNone
     }
 
-    "store and getAll" in {
-      Family.columnUpdate(1)(Family.column1(value1 + value2))
-      Family.columnUpdate(2)(Family.column1(value1 + value2))
-      Family.getAll(10, false, None) must beEqualTo(1 :: 2 :: Nil)
+    "store and getAll and truncate" in {
+      (1 to 20).foreach(Family.columnUpdate(_)(Family.column1(value1 + value2)))
+      Family.getAll(10, false, None) must beEqualTo((1 to 10).toList)
+      Family.getAll(10, false, Some(10)) must beEqualTo((11 to 20).toList)
+      Family.truncate()
+      Family.getAll(10, false, None) must beEqualTo(Nil)
+
       // DON'T WORK
       //Family.getAll(10, true, None) must beEqualTo(2 :: 1 :: Nil) // Need ordered partitioner to work
     }

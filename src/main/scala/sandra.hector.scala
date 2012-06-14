@@ -53,15 +53,17 @@ final class StandardFamilyTemplate[T <: Family, K, N]
     else None
   }
 
-  def getAll(size: Int, reversed: Boolean, from: Option[family.type#K]): List[family.type#K] = {
+  def getAll(_size: Int, reversed: Boolean, from: Option[family.type#K]): List[family.type#K] = {
+    val size = from.map(_ => _size +1).getOrElse(_size)
     val query = HFactory.createRangeSlicesQuery(
       hkeyspace, 
       family.k.cassandra.asInstanceOf[me.prettyprint.hector.api.Serializer[family.type#K]],
       family.n.cassandra.asInstanceOf[me.prettyprint.hector.api.Serializer[family.type#N]],
       family.k.cassandra.asInstanceOf[me.prettyprint.hector.api.Serializer[family.type#K]])
             .setColumnFamily(family.familyName)
-            .setRange(null.asInstanceOf[family.type#N], null.asInstanceOf[family.type#N], reversed, from.map(_ => size +1).getOrElse(size))
-            //.setRowCount(row_count);
+            .setRange(null.asInstanceOf[family.type#N], null.asInstanceOf[family.type#N], reversed, size)
+            .setRowCount(size);
+
 
     from.foreach(query.setKeys(_, null.asInstanceOf[family.type#K]))
 
@@ -95,7 +97,7 @@ final class StandardFamilyDDL[T <: Family, K, N]
       (override val cluster: Cluster, override val family: T)
     extends Hector[T, K, N] {
 
-  def autoconf() : Boolean = {
+  def autoconf(): Boolean = {
     // TODO [aloiscochard] Autogenerate column descripton (by adding parameters Seq[Column[_,_]]
     val ksname = family.keyspace.keyspaceName
     val ksdef = Option(hcluster.describeKeyspace(ksname)).getOrElse {
@@ -107,6 +109,11 @@ final class StandardFamilyDDL[T <: Family, K, N]
       hcluster.addColumnFamily(
         HFactory.createColumnFamilyDefinition(ksname, family.familyName))
     }
+    true
+  }
+
+  def truncate(): Boolean = {
+    hcluster.truncate(family.keyspace.keyspaceName, family.familyName)
     true
   }
     

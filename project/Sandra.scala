@@ -12,8 +12,8 @@ import Keys._
 
 object BuildSettings {
   val buildSettings = Defaults.defaultSettings ++ Sonatype.settings ++ Seq(
-    organization        := "com.github.aloiscochard.sandra",
-    version             := "0.1-SNAPSHOT",
+    organization        := "com.github.aloiscochard",
+    version             := "0.1.1-SNAPSHOT",
     scalaVersion        := "2.9.2",
     scalacOptions       := Seq("-unchecked", "-deprecation", "-Ydependent-method-types"),
     crossScalaVersions  := Seq("2.9.1", "2.9.1-1", "2.9.2"),
