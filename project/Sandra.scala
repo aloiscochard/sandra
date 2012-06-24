@@ -13,7 +13,7 @@ import Keys._
 object BuildSettings {
   val buildSettings = Defaults.defaultSettings ++ Sonatype.settings ++ Seq(
     organization        := "com.github.aloiscochard",
-    version             := "0.1.1-SNAPSHOT",
+    version             := "0.1.6-SNAPSHOT",
     scalaVersion        := "2.9.2",
     scalacOptions       := Seq("-unchecked", "-deprecation", "-Ydependent-method-types"),
     crossScalaVersions  := Seq("2.9.1", "2.9.1-1", "2.9.2"),
@@ -43,6 +43,7 @@ object SandraBuild extends Build {
     "sandra",
     file ("."),
     settings = buildSettings ++ testDependencies ++ Sonatype.settings ++ Seq(
+      parallelExecution in Test := false,
       libraryDependencies ++= Seq(
         "me.prettyprint" % "hector-core" % "1.0-5"
       )

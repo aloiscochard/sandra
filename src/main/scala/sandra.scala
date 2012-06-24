@@ -13,9 +13,13 @@ import java.util.Date;
 import java.util.UUID;
 import com.eaio.uuid.{UUID => TimeUUID};
 
+// TODO [aloiscochard] Complete composite support with own type, like Composite[(A, B)], then accept tuple
+
 package object sandra {
   type CassandraConfigurator = me.prettyprint.cassandra.service.CassandraHostConfigurator
   type HResult[T] = me.prettyprint.cassandra.service.template.ColumnFamilyResult[_, T]
+
+  def Empty[N](name: N) = ArrayByteColumn(name)(ArrayByteSerializer).apply(Array(0: Byte))
 
   implicit object ArrayByteSerializer extends Serializer[Array[Byte]] {
     override type C = Array[Byte]
@@ -65,6 +69,23 @@ package object sandra {
     override def cassandra = me.prettyprint.cassandra.serializers.UUIDSerializer.get
   }
 
+
+  // TODO [aloiscochard] Improve with scala-ish composite/dynacomposite types
+  import me.prettyprint.hector.api.beans.Composite
+  import me.prettyprint.hector.api.beans.DynamicComposite
+
+  implicit object CompositeSerializer extends Serializer[Composite] {
+    override type C = Composite
+    override def apply(x: Composite): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.CompositeSerializer.get
+  }
+
+  implicit object DynamicCompositeSerializer extends Serializer[DynamicComposite] {
+    override type C = DynamicComposite
+    override def apply(x: DynamicComposite): C = x
+    override def cassandra = me.prettyprint.cassandra.serializers.DynamicCompositeSerializer.get
+  }
+
   implicit def family2ddl[T <: Family](family: T)(implicit cluster: Cluster) =
     new hector.StandardFamilyDDL[T, T#K, T#N](cluster, family)
 
@@ -89,6 +110,10 @@ package sandra {
     def familyName: String
     def keyspace: Keyspace
 
+    def strategyClass: String
+    def replicationFactor: Int
+    def describe(definition: me.prettyprint.hector.api.ddl.ColumnFamilyDefinition): me.prettyprint.hector.api.ddl.ColumnFamilyDefinition
+
     def k: Serializer[K]
     def n: Serializer[N]
   }
@@ -100,6 +125,9 @@ package sandra {
     override type N = NN
     implicit val family: Family = this
 
+    override val strategyClass = me.prettyprint.cassandra.service.ThriftKsDef.DEF_STRATEGY_CLASS
+    override val replicationFactor = 1
+    override def describe(definition:  me.prettyprint.hector.api.ddl.ColumnFamilyDefinition) = definition
   }
 
   sealed trait Column[T, N] {

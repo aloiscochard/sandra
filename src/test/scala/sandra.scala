@@ -37,14 +37,21 @@ class IntegrationTest extends Specification {
     val value1 = "value1"
     val value2 = "value2"
 
-    Model.Family.autoconf()
 
     "store and update" in {
+      Family.truncate()
+      Family.autoconf()
+
       Family.delete(1) must beEqualTo(true)
       Family.get(1)(Family.column1(_)) must beNone
 
-      Family.columnUpdate(1)(Family.column1(value1 + value2))
+      Family.column.update(1)(Family.column1(value1 + value2))
       Family.get(1)(Family.column1(_).get) must beEqualTo(Some(value1 + value2))
+
+      Family.column.update(1)(Empty("column1"))
+
+      Family.column.update(1)(StringColumn("column1").apply(value2))
+      Family.get(1)(Family.column1(_).get) must beEqualTo(Some(value2))
 
       Family.update(1)(Family.column1(value1) :: Family.column2(value2) :: Nil)
       Family.get(1) { x => (Family.column1(x).get, Family.column2(x).get) } must 
@@ -55,7 +62,10 @@ class IntegrationTest extends Specification {
     }
 
     "store and getAll and truncate" in {
-      (1 to 20).foreach(Family.columnUpdate(_)(Family.column1(value1 + value2)))
+      Family.truncate()
+      Family.autoconf()
+
+      (1 to 20).foreach(Family.column.update(_)(Family.column1(value1 + value2)))
       Family.getAll(10, false, None) must beEqualTo((1 to 10).toList)
       Family.getAll(10, false, Some(10)) must beEqualTo((11 to 20).toList)
       Family.truncate()
@@ -63,6 +73,23 @@ class IntegrationTest extends Specification {
 
       // DON'T WORK
       //Family.getAll(10, true, None) must beEqualTo(2 :: 1 :: Nil) // Need ordered partitioner to work
+    }
+
+    "store and getAll columns" in {
+      Family.truncate()
+      Family.autoconf()
+
+      def values(x: Int, y: Int) = (x to y).map(i => "column" + i -> (i + 100))
+
+      Family.update(100)(values(101, 120).map(x => IntColumn(x._1).apply(x._2)))
+
+      Family.column.all[Int](100, 10, false, None) must beEqualTo(values(101, 110).toList)
+      Family.column.all[Int](100, 10, false, Some("column110")) must beEqualTo(values(111, 120).toList)
+
+      Family.column.all[Int](100, 10, true, None) must beEqualTo(values(111, 120).toList.reverse)
+      Family.column.all[Int](100, 10, true, Some("column111")) must beEqualTo(values(101, 110).toList.reverse)
+
+      Family.column.allNames(100, 10, false, None) must beEqualTo(values(101, 110).toList.map(_._1))
     }
 
     /*
