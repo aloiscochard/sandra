@@ -14,19 +14,32 @@ package hector
 // TODO [aloiscochard] Use HList for type safety!
 import collection.JavaConversions._
 import me.prettyprint.hector.api.factory.HFactory
+import me.prettyprint.hector.api.{Cluster => HCluster}
 
-sealed trait Hector[T <: Family, K, N] {
+sealed trait Hector {
   val cluster: Cluster
+
+  val credentials: Map[String, String] = cluster.credentials
+        .map(x => Map("username" -> x._1, "password" -> x._2))
+        .getOrElse(Map())
+
+  lazy val hcluster = HFactory.createCluster(cluster.name, cluster.configurator, credentials)
+}
+sealed trait HectorTemplate[T <: Family, K, N] extends Hector {
   val family: T
 
-  val hcluster = HFactory.getOrCreateCluster(cluster.name, cluster.configurator)
-  val hkeyspace = cache.keyspace(cluster, family.keyspace)
+  val hkeyspace = cache.keyspace(hcluster, cluster, family.keyspace)
   val htemplate = cache.template[K, N](hkeyspace, family)
+
+}
+
+final class ClusterOps(override val cluster: Cluster) extends Hector {
+  def describeName(): String = hcluster.describeClusterName
 }
 
 final class StandardFamilyTemplate[T <: Family, K, N]
       (override val cluster: Cluster, override val family: T)
-    extends Hector[T, K, N] {
+    extends HectorTemplate[T, K, N] {
 
   val column = new ColumnHector
 
@@ -130,7 +143,7 @@ final class StandardFamilyTemplate[T <: Family, K, N]
 
 final class StandardFamilyDDL[T <: Family, K, N]
       (override val cluster: Cluster, override val family: T)
-    extends Hector[T, K, N] {
+    extends HectorTemplate[T, K, N] {
 
   def autoconf(): Boolean = {
     val ksname = family.keyspace.keyspaceName

@@ -91,10 +91,16 @@ package object sandra {
 
   implicit def family2template[T <: Family](family: T)(implicit cluster: Cluster) =
     new hector.StandardFamilyTemplate[T, T#K, T#N](cluster, family)
+
+  implicit def clusterOps(cluster: Cluster) = new hector.ClusterOps(cluster)
 }
 
 package sandra {
-  case class Cluster(name: String, configurator: CassandraConfigurator)
+  case class Cluster(
+    name: String, 
+    configurator: CassandraConfigurator,
+    credentials: Option[(String, String)] = None
+  )
 
   class Keyspace(val keyspaceName: String) {
     implicit val keyspace: Keyspace = this

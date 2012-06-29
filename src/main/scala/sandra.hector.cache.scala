@@ -9,19 +9,33 @@
 
 package sandra.hector
 
+import scala.collection.JavaConverters._
+
 import sandra._
 
 import me.prettyprint.hector.api.factory.HFactory
 import me.prettyprint.hector.api.{Keyspace => HKeyspace}
-import me.prettyprint.cassandra.service.template.{ColumnFamilyTemplate => FamilyTemplate};
-import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
+import me.prettyprint.hector.api.{Cluster => HCluster}
+import me.prettyprint.cassandra.service.template.{ColumnFamilyTemplate => FamilyTemplate}
+import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate
+import me.prettyprint.cassandra.service.FailoverPolicy
+import me.prettyprint.cassandra.model.QuorumAllConsistencyLevelPolicy;
 
 package object cache {
-  def keyspace(cluster: Cluster, keyspace: Keyspace): HKeyspace = keyspaces.synchronized {
+  def keyspace(hcluster: HCluster, cluster: Cluster, keyspace: Keyspace): HKeyspace = keyspaces.synchronized {
     val key = cluster -> keyspace
     keyspaces.getOrElse(key, {
-      val k = HFactory.createKeyspace(keyspace.keyspaceName,
-        HFactory.getOrCreateCluster(cluster.name, cluster.configurator))
+
+      val k = HFactory.createKeyspace(
+        keyspace.keyspaceName,
+        hcluster
+      )
+      /*
+        new QuorumAllConsistencyLevelPolicy,
+        FailoverPolicy.ON_FAIL_TRY_ALL_AVAILABLE,
+        credentials.asJava
+      )
+      */
       keyspaces += (key -> k)
       k
     })
