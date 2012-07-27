@@ -49,6 +49,7 @@ final class StandardFamilyTemplate[T <: Family, K, N]
   }
 
 
+  /** Warning: will get columns only for the first slice of 100 columns! **/
   def get[R](key: family.type#K)(f: HResult[family.type#N] => R): Option[R] = {
     val result = htemplate.queryColumns(family.k(key))
       .asInstanceOf[HResult[family.type#N]]
@@ -107,7 +108,7 @@ final class StandardFamilyTemplate[T <: Family, K, N]
     }
 
     def get[T](key: family.type#K)(column: Column[T, family.type#N]): Option[T] =
-      StandardFamilyTemplate.this.get(key)(x => column(x)).flatMap(identity)
+      Option(htemplate.querySingleColumn(family.k(key), column.name, column.serializer.cassandra)).map(_.getValue.asInstanceOf[T])
 
     def update(key: family.type#K)(value: ColumnValue[_, family.type#N]) = {
       StandardFamilyTemplate.this.update(key)(value :: Nil)
