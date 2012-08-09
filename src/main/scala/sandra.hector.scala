@@ -137,7 +137,10 @@ final class StandardFamilyTemplate[T <: Family, K, N]
           .setKey(key)
 
       val columns = query.execute().get().getColumns().toList
-      from.map(_ => columns.tail).getOrElse(columns).map(f)
+      from.map(_ => columns match {
+        case Nil => Nil
+        case xs => xs.tail
+      }).getOrElse(columns).map(f)
     }
   }
 }
